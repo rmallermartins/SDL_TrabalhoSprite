@@ -6,11 +6,17 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define SPRITE_SIZE 50
+#define WALKING_ANIMATION_OFFSET 0
 #define WALKING_ANIMATION_FRAMES 9
+#define SPAWNING_ANIMATION_OFFSET 10
+#define SPAWNING_ANIMATION_FRAMES 8
+#define STANDING_ANIMATION_OFFSET 20
+#define STANDING_ANIMATION_FRAMES 8
 
 using namespace std;
 
 SDL_Texture* loadTexture(string path);
+void loadAnimation(int offset, int frames, SDL_Rect rect[]);
 bool init();
 void close();
 void handleEvent(SDL_Event event);
@@ -19,11 +25,14 @@ SDL_Window* gWindow;
 LTexture gBackgroundTexture;
 LTexture gModulatedTexture;
 LTexture gSpriteTexture;
-SDL_Rect rectSrc, rectSprite[WALKING_ANIMATION_FRAMES];
+SDL_Rect rectWalkingSprite[WALKING_ANIMATION_FRAMES];
+SDL_Rect rectSpawningSprite[SPAWNING_ANIMATION_FRAMES];
+SDL_Rect rectStandingSprite[STANDING_ANIMATION_FRAMES];
 SDL_Renderer* gRenderer = NULL;
 
 SDL_Event event;
 bool flip = false;
+bool walking = false;
 SDL_RendererFlip flipType = SDL_FLIP_NONE;
 
 int quit;
@@ -48,6 +57,19 @@ SDL_Texture* loadTexture(string path)
         SDL_FreeSurface(loadedSurface);
     }
     return newTexture;
+}
+
+void loadAnimation(int offset, int frames, SDL_Rect rect[])
+{
+    for (int i = 0; i < frames; i++)
+    {
+        (i < 5) ?
+            (rect[i].x = i * SPRITE_SIZE) : (rect[i].x = (i - 5) * SPRITE_SIZE);
+        (i < 5) ?
+            (rect[i].y = (offset / 5) * SPRITE_SIZE) : (rect[i].y = ((offset / 5) + 1) * SPRITE_SIZE);
+        rect[i].w = SPRITE_SIZE;
+        rect[i].h = SPRITE_SIZE;
+    }
 }
 
 bool init()
@@ -90,18 +112,10 @@ bool init()
 
             gBackgroundTexture.loadFromFile("D:/Codes/SDL/SDL_TrabalhoSprite/SDL_TrabalhoSprite/imagem.png", gRenderer);
             gSpriteTexture.loadFromFile("D:/Codes/SDL/SDL_TrabalhoSprite/SDL_TrabalhoSprite/sprite.png", gRenderer);
-            rectSrc.w = SPRITE_SIZE;
-            rectSrc.h = SPRITE_SIZE;
 
-            for (int i = 0; i < 9; i++)
-            {
-                (i < 5) ?
-                    (rectSprite[i].x = i * SPRITE_SIZE) : (rectSprite[i].x = (i - 5) * SPRITE_SIZE);
-                (i < 5) ?
-                    (rectSprite[i].y = 0) : (rectSprite[i].y = SPRITE_SIZE);
-                rectSprite[i].w = SPRITE_SIZE;
-                rectSprite[i].h = SPRITE_SIZE;
-            }
+            loadAnimation(WALKING_ANIMATION_OFFSET, WALKING_ANIMATION_FRAMES, rectWalkingSprite);
+            loadAnimation(SPAWNING_ANIMATION_OFFSET, SPAWNING_ANIMATION_FRAMES, rectSpawningSprite);
+            loadAnimation(STANDING_ANIMATION_OFFSET, STANDING_ANIMATION_FRAMES, rectStandingSprite);
         }
     }
     return success;
@@ -133,33 +147,60 @@ void handleEvent(SDL_Event event)
         switch (event.key.keysym.sym)
         {
         case SDLK_ESCAPE:
+            quit = 1;
+            break;
         case SDLK_q:
             quit = 1;
             break;
         case SDLK_RIGHT:
             if (flip) { flip = false; key = 0; }
+            walking = true;
             key++;
             if (key > WALKING_ANIMATION_FRAMES - 1) { key = 0; }
-            posX += 15;
+            posX += 10;
             cout << posX << endl;
             cout << "Flip?" << flip << endl;
             break;
         case SDLK_LEFT:
             if (!flip) { flip = true; key = 0; }
+            walking = true;
             key++;
             if (key > WALKING_ANIMATION_FRAMES - 1) { key = 0; }
-            posX -= 15;
+            posX -= 10;
             cout << posX << endl;
             cout << "Flip?" << flip << endl;
             break;
         case SDLK_DOWN:
+            walking = true;
             posY += 15;
             break;
         case SDLK_UP:
+            walking = true;
             posY -= 15;
             break;
         }
         break;
+    case SDL_KEYUP:
+        switch (event.key.keysym.sym)
+        {
+        case SDLK_RIGHT:
+            key = 0;
+            walking = false;
+            break;
+        case SDLK_LEFT:
+            key = 0;
+            walking = false;
+            break;
+        case SDLK_DOWN:
+            key = 0;
+            walking = false;
+            break;
+        case SDLK_UP:
+            key = 0;
+            walking = false;
+            break;
+        }
+
     }
     cout << key << endl;
     if (posX >= (SCREEN_WIDTH - SPRITE_SIZE)) { posX = (SCREEN_WIDTH - SPRITE_SIZE); }
@@ -173,6 +214,17 @@ int main(int argc, char* args[])
     if (!init()) { printf("Failed to initialize!\n"); }
     else
     {
+        while (key < SPAWNING_ANIMATION_FRAMES)
+        {
+            SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+            SDL_RenderClear(gRenderer);
+            gBackgroundTexture.render(0, 0, gRenderer);
+            gSpriteTexture.render(posX, posY, gRenderer, &rectSpawningSprite[key], 0.0, NULL, flipType);
+            SDL_RenderPresent(gRenderer);
+            key++;
+            SDL_Delay(80);
+        }
+
         while (!quit)
         {
             while (SDL_PollEvent(&event) != 0)
@@ -185,9 +237,21 @@ int main(int argc, char* args[])
             gBackgroundTexture.render(0, 0, gRenderer);
 
             (flip) ? (flipType = SDL_FLIP_HORIZONTAL) : (flipType = SDL_FLIP_NONE);
-            gSpriteTexture.render(posX, posY, gRenderer, &rectSprite[key], 0.0, NULL, flipType);
 
-            SDL_RenderPresent(gRenderer);
+            if (walking)
+            {
+                gSpriteTexture.render(posX, posY, gRenderer, &rectWalkingSprite[key], 0.0, NULL, flipType);
+                SDL_RenderPresent(gRenderer);
+                SDL_Delay(50);
+            }
+            else
+            {
+                if (key > STANDING_ANIMATION_FRAMES - 1) { key = 0; }
+                gSpriteTexture.render(posX, posY, gRenderer, &rectStandingSprite[key], 0.0, NULL, flipType);
+                key++;
+                SDL_RenderPresent(gRenderer);
+                SDL_Delay(150);
+            }
         }
     }
     close();
