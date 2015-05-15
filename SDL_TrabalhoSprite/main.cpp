@@ -6,24 +6,25 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define SPRITE_SIZE 50
-#define WALKING_ANIMATION_FRAMES 18
-#define WALKING_LEFT_LAST_FRAME 9
-#define WALKING_RIGHT_LAST_FRAME 18
+#define WALKING_ANIMATION_FRAMES 9
 
 using namespace std;
 
-bool init();
-bool loadMedia();
-void close();
 SDL_Texture* loadTexture(string path);
+bool init();
+void close();
+void handleEvent(SDL_Event event);
 
 SDL_Window* gWindow;
 LTexture gBackgroundTexture;
 LTexture gModulatedTexture;
 LTexture gSpriteTexture;
-SDL_Event event;
 SDL_Rect rectSrc, rectSprite[WALKING_ANIMATION_FRAMES];
 SDL_Renderer* gRenderer = NULL;
+
+SDL_Event event;
+bool flip = false;
+SDL_RendererFlip flipType = SDL_FLIP_NONE;
 
 int quit;
 int key = 0, posX = 0, posY = 0;
@@ -60,7 +61,7 @@ bool init()
     }
     else
     {
-        gWindow = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+        gWindow = SDL_CreateWindow("SDL Trabalho Sprite", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
         if (gWindow == NULL)
         {
             printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
@@ -86,33 +87,22 @@ bool init()
                 }
             }
 
-            gBackgroundTexture.loadFromFile("D:/Codes/SDL/SDLBlog/ExemploSprite/imagem.png", gRenderer);
-            gSpriteTexture.loadFromFile("D:/Codes/SDL/SDLBlog/ExemploSprite/sprite.png", gRenderer);
+            gBackgroundTexture.loadFromFile("D:/Codes/SDL/SDL_TrabalhoSprite/SDL_TrabalhoSprite/imagem.png", gRenderer);
+            gSpriteTexture.loadFromFile("D:/Codes/SDL/SDL_TrabalhoSprite/SDL_TrabalhoSprite/sprite.png", gRenderer);
             rectSrc.w = SPRITE_SIZE;
             rectSrc.h = SPRITE_SIZE;
 
-            for (int i = 0; i < 18; i++)
+            for (int i = 0; i < 9; i++)
             {
-                if (i < 9)
-                {
-                    (i < 5) ?
-                        (rectSprite[i].x = i * SPRITE_SIZE) : (rectSprite[i].x = (i - 5) * SPRITE_SIZE);
-                    (i < 5) ?
-                        (rectSprite[i].y = 0) : (rectSprite[i].y = SPRITE_SIZE);
-                }
-                else
-                {
-                    (i < 14) ?
-                        (rectSprite[i].x = (13 - i) * SPRITE_SIZE) : (rectSprite[i].x = (18 - i) * SPRITE_SIZE);
-                    (i < 14) ?
-                        (rectSprite[i].y = 2 * SPRITE_SIZE) : (rectSprite[i].y = 3 * SPRITE_SIZE);
-                }
+                (i < 5) ?
+                    (rectSprite[i].x = i * SPRITE_SIZE) : (rectSprite[i].x = (i - 5) * SPRITE_SIZE);
+                (i < 5) ?
+                    (rectSprite[i].y = 0) : (rectSprite[i].y = SPRITE_SIZE);
                 rectSprite[i].w = SPRITE_SIZE;
                 rectSprite[i].h = SPRITE_SIZE;
             }
         }
     }
-
     return success;
 }
 
@@ -146,16 +136,20 @@ void handleEvent(SDL_Event event)
             quit = 1;
             break;
         case SDLK_RIGHT:
+            if (flip) { flip = false; key = 0; }
             key++;
-            if (key > 8) { key = 0; }
+            if (key > WALKING_ANIMATION_FRAMES - 1) { key = 0; }
             posX += 15;
             cout << posX << endl;
+            cout << "Flip?" << flip << endl;
             break;
         case SDLK_LEFT:
+            if (!flip) { flip = true; key = 0; }
             key++;
-            if (key < 9 || key > 17) { key = 9; }
+            if (key > WALKING_ANIMATION_FRAMES - 1) { key = 0; }
             posX -= 15;
             cout << posX << endl;
+            cout << "Flip?" << flip << endl;
             break;
         case SDLK_DOWN:
             posY += 15;
@@ -188,7 +182,9 @@ int main(int argc, char* args[])
             SDL_RenderClear(gRenderer);
 
             gBackgroundTexture.render(0, 0, gRenderer);
-            gSpriteTexture.render(posX, posY, gRenderer, &rectSprite[key]);
+
+            (flip) ? (flipType = SDL_FLIP_HORIZONTAL) : (flipType = SDL_FLIP_NONE);
+            gSpriteTexture.render(posX, posY, gRenderer, &rectSprite[key], 0.0, NULL, flipType);
 
             SDL_RenderPresent(gRenderer);
         }
