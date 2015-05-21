@@ -1,7 +1,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 #include <iostream>
-#include "LTexture.h"
+#include "GTexture.h"
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -15,20 +16,21 @@
 
 using namespace std;
 
-SDL_Texture* loadTexture(string path);
 void loadAnimation(int offset, int frames, SDL_Rect rect[]);
 bool init();
 void close();
 void handleEvent(SDL_Event event);
 
 SDL_Window* gWindow;
-LTexture gBackgroundTexture;
-LTexture gModulatedTexture;
-LTexture gSpriteTexture;
+GTexture gBackgroundTexture;
+GTexture gSpriteTexture;
 SDL_Rect rectWalkingSprite[WALKING_ANIMATION_FRAMES];
 SDL_Rect rectSpawningSprite[SPAWNING_ANIMATION_FRAMES];
 SDL_Rect rectStandingSprite[STANDING_ANIMATION_FRAMES];
 SDL_Renderer* gRenderer = NULL;
+Mix_Music* gMusic = NULL;
+Mix_Chunk* gJumpSound = NULL;
+Mix_Chunk* gSpawnSound = NULL;
 
 SDL_Event event;
 bool flip = false;
@@ -38,25 +40,24 @@ SDL_RendererFlip flipType = SDL_FLIP_NONE;
 int quit;
 int key = 0, posX = 0, posY = 0;
 
-SDL_Texture* loadTexture(string path)
+void loadMusic()
 {
-    SDL_Texture* newTexture = NULL;
+    gMusic = Mix_LoadMUS("XTheme.mp3");
+    if (gMusic == NULL)
+    {
+        printf("Failed to load music! SDL_mixer Error: %s\n", Mix_GetError());
+    }
+}
 
-    SDL_Surface* loadedSurface = IMG_Load(path.c_str());
-    if (loadedSurface == NULL)
+void loadSoundFx()
+{
+    gJumpSound = Mix_LoadWAV("jump.wav");
+    gSpawnSound = Mix_LoadWAV("spawn.wav");
+    if (gJumpSound == NULL || gSpawnSound == NULL)
     {
-        printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
+        printf("Failed to load scratch sound effect! SDL_mixer Error: %s\n", Mix_GetError());
     }
-    else
-    {
-        newTexture = SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
-        if (newTexture == NULL)
-        {
-            printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
-        }
-        SDL_FreeSurface(loadedSurface);
-    }
-    return newTexture;
+
 }
 
 void loadAnimation(int offset, int frames, SDL_Rect rect[])
@@ -76,7 +77,7 @@ bool init()
 {
     bool success = true;
 
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
     {
         printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
         success = false;
@@ -84,7 +85,7 @@ bool init()
     else
     {
         gWindow = SDL_CreateWindow("SDL Trabalho Sprite", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_FULLSCREEN);
+            SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
         if (gWindow == NULL)
         {
             printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
@@ -108,14 +109,24 @@ bool init()
                     printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
                     success = false;
                 }
+
+                if (!(Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048)))
+                {
+                    printf("SDL_Mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+                    success = false;
+                }
+
+                Mix_Init(MIX_INIT_MP3);
             }
 
-            gBackgroundTexture.loadFromFile("D:/Codes/SDL/SDL_TrabalhoSprite/SDL_TrabalhoSprite/imagem.png", gRenderer);
-            gSpriteTexture.loadFromFile("D:/Codes/SDL/SDL_TrabalhoSprite/SDL_TrabalhoSprite/sprite.png", gRenderer);
+            gBackgroundTexture.onLoad("imagem.png", gRenderer);
+            gSpriteTexture.onLoad("sprite.png", gRenderer);
 
             loadAnimation(WALKING_ANIMATION_OFFSET, WALKING_ANIMATION_FRAMES, rectWalkingSprite);
             loadAnimation(SPAWNING_ANIMATION_OFFSET, SPAWNING_ANIMATION_FRAMES, rectSpawningSprite);
             loadAnimation(STANDING_ANIMATION_OFFSET, STANDING_ANIMATION_FRAMES, rectStandingSprite);
+            loadMusic();
+            loadSoundFx();
         }
     }
     return success;
@@ -125,12 +136,17 @@ void close()
 {
     gSpriteTexture.free();
     gBackgroundTexture.free();
-    gModulatedTexture.free();
  
     SDL_DestroyRenderer(gRenderer);
     SDL_DestroyWindow(gWindow);
     gWindow = NULL;
     gRenderer = NULL;
+
+    Mix_FreeMusic(gMusic);
+    Mix_FreeChunk(gJumpSound);
+    Mix_FreeChunk(gSpawnSound);
+
+    Mix_CloseAudio();
 
     IMG_Quit();
     SDL_Quit();
@@ -214,12 +230,14 @@ int main(int argc, char* args[])
     if (!init()) { printf("Failed to initialize!\n"); }
     else
     {
+        Mix_PlayMusic(gMusic, -1);
+
         while (key < SPAWNING_ANIMATION_FRAMES)
         {
             SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
             SDL_RenderClear(gRenderer);
-            gBackgroundTexture.render(0, 0, gRenderer);
-            gSpriteTexture.render(posX, posY, gRenderer, &rectSpawningSprite[key], 0.0, NULL, flipType);
+            gBackgroundTexture.onDraw(0, 0, gRenderer);
+            gSpriteTexture.onDraw(posX, posY, gRenderer, &rectSpawningSprite[key], 0.0, NULL, flipType);
             SDL_RenderPresent(gRenderer);
             key++;
             SDL_Delay(80);
@@ -234,26 +252,27 @@ int main(int argc, char* args[])
             SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
             SDL_RenderClear(gRenderer);
 
-            gBackgroundTexture.render(0, 0, gRenderer);
+            gBackgroundTexture.onDraw(0, 0, gRenderer);
 
             (flip) ? (flipType = SDL_FLIP_HORIZONTAL) : (flipType = SDL_FLIP_NONE);
 
             if (walking)
             {
-                gSpriteTexture.render(posX, posY, gRenderer, &rectWalkingSprite[key], 0.0, NULL, flipType);
+                gSpriteTexture.onDraw(posX, posY, gRenderer, &rectWalkingSprite[key], 0.0, NULL, flipType);
                 SDL_RenderPresent(gRenderer);
                 SDL_Delay(50);
             }
             else
             {
                 if (key > STANDING_ANIMATION_FRAMES - 1) { key = 0; }
-                gSpriteTexture.render(posX, posY, gRenderer, &rectStandingSprite[key], 0.0, NULL, flipType);
+                gSpriteTexture.onDraw(posX, posY, gRenderer, &rectStandingSprite[key], 0.0, NULL, flipType);
                 key++;
                 SDL_RenderPresent(gRenderer);
                 SDL_Delay(150);
             }
         }
     }
+    SDL_Delay(5000);
     close();
     return 0;
 }

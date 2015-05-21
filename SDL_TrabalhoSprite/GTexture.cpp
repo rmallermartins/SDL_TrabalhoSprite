@@ -1,28 +1,28 @@
-#include "LTexture.h"
+#include "GTexture.h"
 
 using namespace std;
 
-LTexture::LTexture()
+GTexture::GTexture()
 {
     mTexture = NULL;
     mWidth = 0;
     mHeight = 0;
 }
 
-LTexture::~LTexture()
+GTexture::~GTexture()
 {
     free();
 }
 
-bool LTexture::loadFromFile(string path, SDL_Renderer* gRenderer)
+bool GTexture::onLoad(char* path, SDL_Renderer* gRenderer)
 {
     free();
     SDL_Texture* newTexture = NULL;
 
-    SDL_Surface* loadedSurface = IMG_Load(path.c_str());
+    SDL_Surface* loadedSurface = IMG_Load(path);
     if (loadedSurface == NULL)
     {
-        printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
+        printf("Unable to load image %s! SDL_image Error: %s\n", path, IMG_GetError());
     }
     else
     {
@@ -30,7 +30,7 @@ bool LTexture::loadFromFile(string path, SDL_Renderer* gRenderer)
         newTexture = SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
         if (newTexture == NULL)
         {
-            printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
+            printf("Unable to create texture from %s! SDL Error: %s\n", path, SDL_GetError());
         }
         else
         {
@@ -43,7 +43,7 @@ bool LTexture::loadFromFile(string path, SDL_Renderer* gRenderer)
     return mTexture != NULL;
 }
 
-void LTexture::free()
+void GTexture::free()
 {
     if (mTexture != NULL)
     {
@@ -54,22 +54,22 @@ void LTexture::free()
     }
 }
 
-void LTexture::setColor(Uint8 red, Uint8 green, Uint8 blue)
+void GTexture::setColor(Uint8 red, Uint8 green, Uint8 blue)
 {
     SDL_SetTextureColorMod(mTexture, red, green, blue);
 }
 
-void LTexture::setBlendMode(SDL_BlendMode blending)
+void GTexture::setBlendMode(SDL_BlendMode blending)
 {
     SDL_SetTextureBlendMode(mTexture, blending);
 }
 
-void LTexture::setAlpha(Uint8 alpha)
+void GTexture::setAlpha(Uint8 alpha)
 {
     SDL_SetTextureAlphaMod(mTexture, alpha);
 }
 
-void LTexture::render(int x, int y, SDL_Renderer* gRenderer, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
+void GTexture::onDraw(int x, int y, SDL_Renderer* gRenderer, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
 {
     SDL_Rect renderQuad = { x, y, mWidth, mHeight };
 
@@ -81,12 +81,12 @@ void LTexture::render(int x, int y, SDL_Renderer* gRenderer, SDL_Rect* clip, dou
     SDL_RenderCopyEx(gRenderer, mTexture, clip, &renderQuad, angle, center, flip);
 }
 
-int LTexture::getWidth()
+int GTexture::getWidth()
 {
     return mWidth;
 }
 
-int LTexture::getHeight()
+int GTexture::getHeight()
 {
     return mHeight;
 }
