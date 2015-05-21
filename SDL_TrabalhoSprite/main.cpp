@@ -109,14 +109,13 @@ bool init()
                     printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
                     success = false;
                 }
+            }
 
-                if (!(Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048)))
-                {
-                    printf("SDL_Mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
-                    success = false;
-                }
-
-                Mix_Init(MIX_INIT_MP3);
+            Mix_Init(MIX_INIT_MP3);
+            if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+            {
+                printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+                success = false;
             }
 
             gBackgroundTexture.onLoad("imagem.png", gRenderer);
@@ -272,7 +271,6 @@ int main(int argc, char* args[])
             }
         }
     }
-    SDL_Delay(5000);
     close();
     return 0;
 }
