@@ -7,8 +7,8 @@
 #include <time.h>
 #include "GTexture.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 368
+#define SCREEN_HEIGHT 322
 #define SPRITE_SIZE 50
 #define WALKING_ANIMATION_OFFSET 0
 #define WALKING_ANIMATION_FRAMES 9
@@ -127,15 +127,15 @@ bool init()
                 success = false;
             }
 
-            gBackgroundTexture.onLoad("imagem.png", gRenderer);
-            gSpriteTexture.onLoad("sprite.png", gRenderer);
+            gBackgroundTexture.onLoad("Images/imagem.png", gRenderer);
+            gSpriteTexture.onLoad("Images/sprite.png", gRenderer);
             loadAnimation(WALKING_ANIMATION_OFFSET, WALKING_ANIMATION_FRAMES, rectWalkingSprite);
             loadAnimation(SPAWNING_ANIMATION_OFFSET, SPAWNING_ANIMATION_FRAMES, rectSpawningSprite);
             loadAnimation(STANDING_ANIMATION_OFFSET, STANDING_ANIMATION_FRAMES, rectStandingSprite);
             loadAnimation(SHOOTING_ANIMATION_OFFSET, SHOOTING_ANIMATION_FRAMES, rectShootingSprite);
-            gMusic = loadMusic("XTheme.mp3");
-            gSpawnSound = loadSoundFx("spawn.wav");
-            gShootingSound =  loadSoundFx("shoot.wav");
+            gMusic = loadMusic("Sounds/XTheme.mp3");
+            gSpawnSound = loadSoundFx("Sounds/spawn.wav");
+            gShootingSound =  loadSoundFx("Sounds/shoot.wav");
         }
     }
     return success;
@@ -197,22 +197,10 @@ void handleEvent(SDL_Event event)
             cout << posX << endl;
             cout << "Flip?" << flip << endl;
             break;
-        case SDLK_DOWN:
-            walking = true;
-            standAnim = false;
-            posY += 15;
-            break;
-        case SDLK_UP:
-            walking = true;
-            standAnim = false;
-            posY -= 15;
-            break;
         case SDLK_SPACE:
             shooting = true;
             walking = false;
             standAnim = false;
-            gSpriteTexture.onDraw(posX, posY, gRenderer, &rectShootingSprite[0], 0.0, NULL, flipType);
-            SDL_Delay(100);
         }
         break;
     case SDL_KEYUP:
@@ -226,18 +214,9 @@ void handleEvent(SDL_Event event)
             key = 7;
             walking = false;
             break;
-        case SDLK_DOWN:
-            key = 7;
-            walking = false;
-            break;
-        case SDLK_UP:
-            key = 7;
-            walking = false;
-            break;
         case SDLK_SPACE:
             shooting = false;
-            gSpriteTexture.onDraw(posX, posY, gRenderer, &rectShootingSprite[2], 0.0, NULL, flipType);
-            SDL_Delay(100);
+            key = 7;
         }
     }
     cout << key << endl;
@@ -295,7 +274,7 @@ int main(int argc, char* args[])
             else
             {
                 if (key >= STANDING_ANIMATION_FRAMES - 1) { standAnim = false; }
-                if ((rand() % 100) > 92 && standAnim == false) { standAnim = true; key = 0; }
+                if ((rand() % 100) > 85 && standAnim == false) { standAnim = true; key = 0; }
                 if (standAnim && key < STANDING_ANIMATION_FRAMES - 1) 
                 { 
                     key++;
